@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/> 
+<title></title> 
+<style>
+table{border-collapse:collapse;}
+td{border:1px solid #0000cc;padding:5px}
+#message{color:#ff0000}
+</style>
+<script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+<script type="text/javascript">
+$(function () {	
+	//打开数据库
+	var dbSize=2*1024*1024;
+	 db = openDatabase('myDB', '', '', dbSize);
+	 
+	 db.transaction(function(tx){  
+		//创建数据表
+		tx.executeSql("CREATE TABLE IF NOT EXISTS person (id integer PRIMARY KEY,name char(10),introduction varchar(200))"); 
+		showAll();
+	});
+
+	$( "button" ).click(function () {
+		var name=$("#name").val();
+		var introduction=$("#introduction").val();
+		if(name=="" || introduction==""){
+			$("#message").html("请输入昵称和内容");
+			return false;
+		}
+			
+		db.transaction(function(tx){  
+				//新增数据
+				tx.executeSql("INSERT INTO person(name,introduction) values(?,?)",[name,introduction],function(tx, result){
+					 $("#message").html("新增评论完成!")
+					 showAll();
+				},function(e){
+					 $("#message").html("新增评论错误:"+e.message)
+				}); 
+		});
+	})
+	
+	$("#showData").on('click', ".delItem", function() {
+		var delid=$(this).prop("id");
+		db.transaction(function(tx){  
+				//刪除数据
+				var delstr="DELETE FROM person WHERE id=?";
+				tx.executeSql(delstr,[delid],function(tx, result){
+					 $("#message").html("刪除评论完成!")
+					showAll();
+				},function(e){
+					 $("#message").html("刪除评论错误:"+e.errorCode);
+				}); 
+		});
+	})
+	function showAll(){
+		$("#showData").html("");
+		db.transaction(function(tx){  
+			//显示person数据表全部数据
+			tx.executeSql("SELECT id,name,introduction FROM person",[], function(tx, result){
+				if(result.rows.length>0){
+					var str="评论：<br>楼层 昵称 内容<br>";
+					for(var i = 0; i < result.rows.length; i++){
+						item = result.rows.item(i);
+						str+="&nbsp;"+item["id"] + "&nbsp;" + item["name"] + "&nbsp;" + item["introduction"] + "&nbsp;<br><input type='button' id='"+item["id"]+"' class='delItem' value='刪除'><br>";
+					}
+					//str+=;
+					$("#showData").html(str);
+				}
+			},function(e){
+				$("#message").html("SELECT语法出错了!"+e.message)
+			}); 
+		});
+	}
+	
+})
+</script>  
+</head>
+<body>
+<h3>留言</h3>
+请输入昵称和内容：
+<table>
+<tr>
+	<td>昵称：</td>
+	<td><input type="text" id="name"></td>
+</tr>
+<tr>
+	<td>留言：</td>
+	<td><input type="text" id="introduction"></td>
+</tr>
+</table>
+<button id='new'>提交</button>
+<p>
+<div id="message"></div> 
+
+<div id="showData"></div>
+</body>
+</html>
